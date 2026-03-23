@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yeyak CRM v2</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Pretendard:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0d0b;--bg2:#141412;--bg3:#1c1c19;--bg4:#242420;
+  --border:#2e2e2a;--border2:#3a3a35;
+  --text:#e8e5dc;--text2:#9b9890;--text3:#5c5a54;
+  --accent:#ff774c;--accent2:#4d94ff;
+  --green:#2ecc71;--red:#e74c3c;--yellow:#f39c12;
+  --radius:10px;--radius-sm:6px;
+}
+body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+.app{display:grid;grid-template-columns:220px 1fr;grid-template-rows:52px 1fr;min-height:100vh;}
+.topbar{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 20px;height:52px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:10;}
+.logo{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--accent);}
+.logo span{color:var(--text3);}
+.topbar-search{flex:1;max-width:360px;margin-left:12px;position:relative;}
+.topbar-search input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px 6px 30px;font-size:13px;color:var(--text);outline:none;font-family:'Pretendard',sans-serif;}
+.topbar-search input:focus{border-color:var(--border2);}
+.topbar-search input::placeholder{color:var(--text3);}
+.srch-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:12px;}
+.conn-dot{width:6px;height:6px;border-radius:50%;background:var(--yellow);margin-left:auto;}
+.conn-dot.ok{background:var(--green);}
+.conn-dot.err{background:var(--red);}
+.conn-label{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:12px 0;overflow-y:auto;}
+.nav-sec{padding:14px 18px 5px;font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 18px;font-size:13px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all .12s;}
+.nav-item:hover{color:var(--text);background:var(--bg3);}
+.nav-item.active{color:var(--text);border-left-color:var(--accent);background:var(--bg3);}
+.ndot{width:5px;height:5px;border-radius:50%;background:var(--text3);flex-shrink:0;}
+.nav-item.active .ndot{background:var(--accent);}
+.main{padding:20px 24px;overflow-y:auto;height:calc(100vh - 52px);}
+.view{display:none;}
+.view.active{display:block;animation:fi .18s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;}
+.stat-value{font-size:24px;font-weight:600;color:var(--text);font-family:'DM Mono',monospace;}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.sh{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.sh-title{font-size:14px;font-weight:500;}
+.sh-count{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;background:var(--bg3);padding:2px 8px;border-radius:20px;border:1px solid var(--border);}
+.sh-space{flex:1;}
+.btn{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:6px 14px;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Pretendard',sans-serif;transition:all .12s;}
+.btn:hover{color:var(--text);border-color:var(--text3);}
+.btn-acc{background:var(--accent);border-color:var(--accent);color:#fff !important;}
+.btn-acc:hover{opacity:.9;}
+.btn-del{color:var(--red);border-color:transparent;background:transparent;}
+.btn-del:hover{background:rgba(231,76,60,.1);}
+.toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
+.tb-inp{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 11px;font-size:13px;color:var(--text);outline:none;font-family:'Pretendard',sans-serif;}
+.tb-inp:focus{border-color:var(--border2);}
+.tb-inp::placeholder{color:var(--text3);}
+.tb-sel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;color:var(--text2);outline:none;cursor:pointer;font-family:'Pretendard',sans-serif;}
+.tbl-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;overflow-x:auto;}
+table{width:100%;border-collapse:collapse;min-width:500px;}
+thead tr{border-bottom:1px solid var(--border);}
+th{padding:9px 13px;text-align:left;font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;background:var(--bg3);white-space:nowrap;}
+td{padding:9px 13px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr.clk:hover td{background:var(--bg3);color:var(--text);}
+tbody tr.clk{cursor:pointer;}
+.pager{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:var(--text3);}
+.pager button{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 12px;cursor:pointer;color:var(--text2);font-size:12px;}
+.pager button:hover{border-color:var(--border2);color:var(--text);}
+.pager button:disabled{opacity:.3;cursor:default;}
+.pager-info{font-family:'DM Mono',monospace;}
+.badge{display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;border-radius:4px;font-family:'DM Mono',monospace;white-space:nowrap;}
+.bq{background:rgba(46,204,113,.15);color:#2ecc71;border:1px solid rgba(46,204,113,.25);}
+.bnq{background:rgba(231,76,60,.12);color:#e74c3c;border:1px solid rgba(231,76,60,.2);}
+.bp{background:rgba(243,156,18,.12);color:#f39c12;border:1px solid rgba(243,156,18,.2);}
+.bli{background:rgba(77,148,255,.15);color:#4d94ff;border:1px solid rgba(77,148,255,.25);}
+.sbar{display:flex;align-items:center;gap:7px;}
+.sbar-bg{flex:1;height:4px;background:var(--bg4);border-radius:2px;max-width:70px;}
+.sbar-fill{height:4px;border-radius:2px;}
+.sbar-num{font-family:'DM Mono',monospace;font-size:11px;min-width:22px;}
+/* MODAL */
+.mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:500;justify-content:center;align-items:center;}
+.mbox{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);width:520px;max-height:85vh;overflow-y:auto;padding:24px;position:relative;}
+.mtitle{font-size:15px;font-weight:500;margin-bottom:18px;display:flex;align-items:center;}
+.mx{margin-left:auto;background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;line-height:1;padding:0 2px;}
+.mx:hover{color:var(--text);}
+.fr{margin-bottom:14px;}
+.fl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;display:block;}
+.fi{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 11px;font-size:13px;color:var(--text);outline:none;font-family:'Pretendard',sans-serif;}
+.fi:focus{border-color:var(--border2);}
+.fi::placeholder{color:var(--text3);}
+.fta{resize:vertical;min-height:76px;}
+.fsel{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 11px;font-size:13px;color:var(--text);outline:none;cursor:pointer;font-family:'Pretendard',sans-serif;}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fchk{display:flex;gap:20px;padding:10px 12px;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:14px;}
+.fchk label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer;}
+.factions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+/* DETAIL */
+.detbg{display:none;position:fixed;inset:0;z-index:200;}
+.detpanel{position:fixed;right:0;top:52px;bottom:0;width:400px;background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;padding:20px;display:none;animation:si .18s ease;z-index:201;}
+@keyframes si{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
+.dpname{font-size:17px;font-weight:600;margin-bottom:3px;}
+.dpmeta{font-size:12px;color:var(--text3);margin-bottom:16px;}
+.dpsec{margin-bottom:16px;}
+.dpst{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+.dprow{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;}
+.dprl{color:var(--text3);}
+.dprv{color:var(--text);text-align:right;max-width:220px;word-break:break-word;}
+.logitem{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 11px;margin-bottom:6px;}
+.logdots{display:flex;gap:6px;align-items:center;margin-bottom:4px;}
+.logmemo{font-size:12px;color:var(--text2);}
+/* SEARCH */
+.ssec{margin-bottom:18px;}
+.sslbl{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;}
+.sitem{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 13px;margin-bottom:6px;cursor:pointer;transition:all .1s;}
+.sitem:hover{border-color:var(--border2);background:var(--bg3);}
+.sitem-t{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px;}
+.sitem-s{font-size:12px;color:var(--text3);}
+/* DASH */
+.dcard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:14px;}
+.dcardtitle{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:12px;}
+.chartc{position:relative;height:180px;}
+.twitem{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);padding:5px 9px;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:5px;}
+.twdot{width:6px;height:6px;border-radius:50%;background:var(--border2);flex-shrink:0;}
+.twdot.on{background:var(--accent);}
+.twval{margin-left:auto;font-family:'DM Mono',monospace;font-size:12px;color:var(--text3);}
+.irow{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.irow:last-child{border-bottom:none;}
+.ilbl{color:var(--text3);width:140px;flex-shrink:0;}
+.ibarbg{flex:1;height:3px;background:var(--bg4);border-radius:2px;}
+.ibarfill{height:3px;border-radius:2px;}
+.ival{font-family:'DM Mono',monospace;font-size:11px;min-width:36px;text-align:right;}
+.wtbl{width:100%;border-collapse:collapse;font-size:12px;}
+.co-group{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
+.co-group-header{display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;transition:background .12s;user-select:none;}
+.co-group-header:hover{background:var(--bg3);}
+.co-group-name{font-size:14px;font-weight:500;color:var(--text);}
+.co-group-meta{display:flex;gap:10px;margin-left:auto;align-items:center;}
+.co-group-stat{font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);}
+.co-group-arrow{font-size:11px;color:var(--text3);transition:transform .15s;margin-left:4px;}
+.co-group-arrow.open{transform:rotate(90deg);}
+.co-group-body{display:none;border-top:1px solid var(--border);}
+.co-group-body.open{display:block;}
+.ct-row{display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);font-size:13px;}
+.ct-row:last-child{border-bottom:none;}
+.ct-row-name{padding:9px 16px;width:200px;flex-shrink:0;color:var(--text);font-weight:500;border-right:1px solid var(--border);}
+.ct-row-title{padding:9px 12px;width:160px;flex-shrink:0;color:var(--text3);font-size:12px;border-right:1px solid var(--border);}
+.ct-row-logs{flex:1;display:flex;flex-direction:column;}
+.ct-log-item{display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--border);font-size:12px;}
+.ct-log-item:last-child{border-bottom:none;}
+.ct-log-item:hover{background:var(--bg3);}
+.ct-log-date{color:var(--text3);font-family:'DM Mono',monospace;font-size:11px;min-width:90px;}
+.ct-log-status{display:flex;gap:6px;align-items:center;min-width:120px;}
+.ct-log-memo{color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ct-log-actions{display:flex;gap:4px;margin-left:auto;}
+.wtbl th{padding:7px 10px;text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);background:var(--bg3);}
+.wtbl td{padding:7px 10px;color:var(--text2);border-bottom:1px solid var(--border);}
+.wtbl tr:last-child td{border-bottom:none;}
+.empty{text-align:center;padding:36px;color:var(--text3);font-size:13px;}
+.loading{text-align:center;padding:36px;color:var(--text3);}
+.sp{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.1s ease-in-out infinite;}
+.sp:nth-child(2){animation-delay:.2s;}
+.sp:nth-child(3){animation-delay:.4s;}
+@keyframes pulse{0%,100%{opacity:.2}50%{opacity:1}}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 16px;font-size:13px;color:var(--text);z-index:9999;opacity:0;transition:opacity .2s;pointer-events:none;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="topbar">
+  <div class="logo">yeyak<span>.</span>crm <span style="font-size:10px;color:var(--text3);margin-left:2px;">v2</span></div>
+  <div class="topbar-search"><span class="srch-icon">&#9906;</span><input id="gsearch" placeholder="회사명, 담당자, 이메일, 메모 검색..." oninput="onGS(this.value)"></div>
+  <div class="conn-dot" id="cdot"></div><div class="conn-label" id="clbl">connecting</div>
+</div>
+<div class="sidebar">
+  <div class="nav-sec">메인</div>
+  <div class="nav-item active" id="nav-dashboard" onclick="showView('dashboard')"><div class="ndot"></div>대시보드</div>
+  <div class="nav-item" id="nav-search" onclick="showView('search')"><div class="ndot"></div>통합 검색</div>
+  <div class="nav-sec">데이터</div>
+  <div class="nav-item" id="nav-companies" onclick="showView('companies')"><div class="ndot"></div>회사</div>
+  <div class="nav-item" id="nav-contacts" onclick="showView('contacts')"><div class="ndot"></div>담당자</div>
+  <div class="nav-item" id="nav-logs" onclick="showView('logs')"><div class="ndot"></div>컨택 이력</div>
+  <div class="nav-sec">인텔리전스</div>
+  <div class="nav-item" id="nav-intake" onclick="showView('intake')"><div class="ndot"></div>정보 기입</div>
+  <div class="nav-item" id="nav-scoring" onclick="showView('scoring')"><div class="ndot"></div>AI 스코어링</div>
+</div>
+<div class="main">
+
+<div class="view active" id="view-dashboard">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">총 회사</div><div class="stat-value" id="s-co">—</div><div class="stat-sub">고유 회사</div></div>
+    <div class="stat-card"><div class="stat-label">총 담당자</div><div class="stat-value" id="s-ct">—</div><div class="stat-sub">컨택 대상</div></div>
+    <div class="stat-card"><div class="stat-label">수락률</div><div class="stat-value" id="s-acc">—</div><div class="stat-sub">수락 / 발송</div></div>
+    <div class="stat-card"><div class="stat-label">총 응답</div><div class="stat-value" id="s-rep">—</div><div class="stat-sub">replied count</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+    <div class="dcard">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><div style="font-size:13px;font-weight:500;">이번 주 현황</div><div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);background:var(--bg3);padding:2px 8px;border-radius:20px;border:1px solid var(--border);" id="twlbl">W—</div></div>
+      <div id="twbody"><div class="loading"><span class="sp"></span><span class="sp"></span><span class="sp"></span></div></div>
+    </div>
+    <div class="dcard">
+      <div class="dcardtitle">Score vs 실제 전환 (qualified)</div>
+      <div id="implbody"><div class="loading"><span class="sp"></span><span class="sp"></span><span class="sp"></span></div></div>
+    </div>
+  </div>
+  <div class="dcard"><div class="dcardtitle">주차별 전환율 — 수락률 / 응답률</div><div class="chartc"><canvas id="fchart"></canvas></div></div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+    <table class="wtbl"><thead><tr><th>주차</th><th>발송</th><th>수락</th><th>수락률</th><th>응답</th><th>응답률</th><th>누적</th></tr></thead>
+    <tbody id="wtbody"><tr><td colspan="7"><div class="loading"><span class="sp"></span><span class="sp"></span><span class="sp"></span></div></td></tr></tbody></table>
+  </div>
+</div>
+
+<div class="view" id="view-search">
+  <div class="sh"><div class="sh-title">통합 검색</div></div>
+  <div class="toolbar"><input class="tb-inp" id="sinput" placeholder="회사명, 담당자 이름, 이메일, 메모..." style="width:400px;" oninput="runSearch(this.value)"></div>
+  <div id="sresults"><div class="empty">검색어를 입력하세요</div></div>
+</div>
+
+<div class="view" id="view-companies">
+  <div class="sh"><div class="sh-title">회사</div><div class="sh-count" id="co-cnt">—</div><div class="sh-space"></div><button class="btn btn-acc" id="btn-nco">+ 회사 추가</button></div>
+  <div class="toolbar">
+    <input class="tb-inp" id="cosearch" placeholder="회사명 검색..." style="width:220px;" oninput="filterCo()">
+    <select class="tb-sel" id="cofilter" onchange="filterCo()"><option value="">전체 국가</option></select>
+  </div>
+  <div class="tbl-wrap"><table><thead><tr><th>회사명</th><th>국가</th><th>태그</th><th>컨택</th><th>수락</th><th>응답</th><th>Score</th><th>Verdict</th><th></th></tr></thead><tbody id="cobody"><tr><td colspan="9"><div class="loading"><span class="sp"></span><span class="sp"></span><span class="sp"></span></div></td></tr></tbody></table></div>
+  <div class="pager"><button id="coprev" onclick="pgCh('co',-1)">← 이전</button><span class="pager-info" id="copinfo"></span><button id="conext" onclick="pgCh('co',1)">다음 →</button></div>
+</div>
+
+<div class="view" id="view-contacts">
+  <div class="sh"><div class="sh-title">담당자</div><div class="sh-count" id="ct-cnt">—</div><div class="sh-space"></div><button class="btn btn-acc" id="btn-nct">+ 담당자 추가</button></div>
+  <div class="toolbar">
+    <input class="tb-inp" id="ctsearch" placeholder="이름 / 이메일 검색..." style="width:220px;" oninput="filterCt()">
+    <select class="tb-sel" id="ctfilter" onchange="filterCt()"><option value="">전체 직함</option><option value="ceo">CEO/Founder</option><option value="director">Director/VP</option><option value="manager">Manager</option></select>
+  </div>
+  <div class="tbl-wrap"><table><thead><tr><th>이름</th><th>직함</th><th>이메일</th><th>회사</th><th>LinkedIn</th><th></th></tr></thead><tbody id="ctbody"><tr><td colspan="6"><div class="loading"><span class="sp"></span><span class="sp"></span><span class="sp"></span></div></td></tr></tbody></table></div>
+  <div class="pager"><button id="ctprev" onclick="pgCh('ct',-1)">← 이전</button><span class="pager-info" id="ctpinfo"></span><button id="ctnext" onclick="pgCh('ct',1)">다음 →</button></div>
+</div>
+
+<div class="view" id="view-logs">
+  <div class="sh"><div class="sh-title">컨택 이력</div><div class="sh-count" id="lg-cnt">—</div><div class="sh-space"></div><button class="btn btn-acc" id="btn-nlg">+ 이력 추가</button></div>
+  <div class="toolbar">
+    <input class="tb-inp" id="lgsearch" placeholder="회사명 검색..." style="width:220px;" oninput="filterLg()">
+    <select class="tb-sel" id="lgaf" onchange="filterLg()"><option value="">수락 전체</option><option value="true">수락됨</option><option value="false">미수락</option></select>
+    <select class="tb-sel" id="lgwf" onchange="filterLg()"><option value="">전체 주차</option></select>
+  </div>
+  <div id="lgbody"><div class="loading"><span class="sp"></span><span class="sp"></span><span class="sp"></span></div></div>
+  <div class="pager"><button id="lgprev" onclick="pgCh('lg',-1)">← 이전</button><span class="pager-info" id="lgpinfo"></span><button id="lgnext" onclick="pgCh('lg',1)">다음 →</button></div>
+</div>
+
+<div class="view" id="view-intake">
+  <div class="sh"><div class="sh-title">정보 기입</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div>
+      <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">회사 정보</div>
+      <div class="fr"><label class="fl">회사 선택</label><select class="fsel" id="ico" onchange="onICo(this.value)"><option value="">— 선택 —</option></select></div>
+      <div class="fr"><label class="fl">국가</label><input class="fi" id="icoc" placeholder="e.g. United States"></div>
+      <div class="fr"><label class="fl">웹사이트</label><input class="fi" id="icow" placeholder="https://..."></div>
+      <div class="fr"><label class="fl">산업 태그</label><select class="fsel" id="icot"><option value="">— 선택 —</option><option>DMC</option><option>MICE</option><option>Corp Event</option><option>Incentive Travel</option><option>Wedding</option><option>Conference</option><option>Other</option></select></div>
+      <div class="fr"><label class="fl">메모</label><textarea class="fi fta" id="icon" placeholder="컨택 중 파악한 회사 정보..."></textarea></div>
+      <button class="btn btn-acc" style="width:100%;" onclick="saveICo()">회사 정보 저장</button>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">담당자 정보</div>
+      <div class="fr"><label class="fl">담당자 선택</label><select class="fsel" id="ict" onchange="onICt(this.value)"><option value="">— 선택 —</option></select></div>
+      <div class="f2">
+        <div class="fr" style="margin:0;"><label class="fl">이름</label><input class="fi" id="ictf" placeholder="First"></div>
+        <div class="fr" style="margin:0;"><label class="fl">성</label><input class="fi" id="ictl" placeholder="Last"></div>
+      </div>
+      <div class="fr" style="margin-top:14px;"><label class="fl">직함</label><input class="fi" id="ictti" placeholder="e.g. Event Director"></div>
+      <div class="fr"><label class="fl">이메일</label><input class="fi" id="icte"></div>
+      <div class="fr"><label class="fl">LinkedIn</label><input class="fi" id="ictli" placeholder="https://linkedin.com/in/..."></div>
+      <div class="fr"><label class="fl">메모</label><textarea class="fi fta" id="ictn" placeholder="담당자 메모..."></textarea></div>
+      <button class="btn btn-acc" style="width:100%;" onclick="saveICt()">담당자 정보 저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-scoring">
+  <div class="sh"><div class="sh-title">AI 스코어링</div><div class="sh-count" id="sc-cnt">—</div><div class="sh-space"></div><button class="btn btn-acc" id="btn-nsc">+ 스코어 입력</button></div>
+  <div class="tbl-wrap"><table><thead><tr><th>회사</th><th>C1</th><th>C3</th><th>C7</th><th>Final</th><th>Verdict</th><th>비고</th><th></th></tr></thead><tbody id="scbody"><tr><td colspan="8"><div class="empty">스코어 없음</div></td></tr></tbody></table></div>
+</div>
+
+</div></div>
+
+<!-- MODALS -->
+<div class="mbg" id="mco"><div class="mbox"><div class="mtitle"><span id="mco-title">회사 추가</span><button class="mx" id="mco-x">✕</button></div><input type="hidden" id="mco-id"><div class="fr"><label class="fl">회사명 *</label><input class="fi" id="mco-name" placeholder="Company Name"></div><div class="f2"><div class="fr" style="margin:0;"><label class="fl">국가</label><input class="fi" id="mco-country" placeholder="United States"></div><div class="fr" style="margin:0;"><label class="fl">산업 태그</label><select class="fsel" id="mco-tag"><option value="">— 선택 —</option><option>DMC</option><option>MICE</option><option>Corp Event</option><option>Incentive Travel</option><option>Wedding</option><option>Conference</option><option>Other</option></select></div></div><div class="fr" style="margin-top:14px;"><label class="fl">웹사이트</label><input class="fi" id="mco-web" placeholder="https://..."></div><div class="fr"><label class="fl">메모</label><textarea class="fi fta" id="mco-notes"></textarea></div><div class="factions"><button class="btn" id="mco-cancel">취소</button><button class="btn btn-acc" onclick="saveCo()">저장</button></div></div></div>
+<div class="mbg" id="mct"><div class="mbox"><div class="mtitle"><span id="mct-title">담당자 추가</span><button class="mx" id="mct-x">✕</button></div><input type="hidden" id="mct-id"><div class="fr"><label class="fl">회사 *</label><select class="fsel" id="mct-co"><option value="">— 회사 선택 —</option></select></div><div class="f2"><div class="fr" style="margin:0;"><label class="fl">이름</label><input class="fi" id="mct-first" placeholder="First"></div><div class="fr" style="margin:0;"><label class="fl">성</label><input class="fi" id="mct-last" placeholder="Last"></div></div><div class="fr" style="margin-top:14px;"><label class="fl">직함</label><input class="fi" id="mct-title-inp" placeholder="e.g. Event Director"></div><div class="fr"><label class="fl">이메일</label><input class="fi" id="mct-email"></div><div class="fr"><label class="fl">LinkedIn</label><input class="fi" id="mct-li" placeholder="https://linkedin.com/in/..."></div><div class="fr"><label class="fl">메모</label><textarea class="fi fta" id="mct-notes"></textarea></div><div class="factions"><button class="btn" id="mct-cancel">취소</button><button class="btn btn-acc" onclick="saveCt()">저장</button></div></div></div>
+<div class="mbg" id="mlg"><div class="mbox"><div class="mtitle"><span id="mlg-title">컨택 이력 추가</span><button class="mx" id="mlg-x">✕</button></div><input type="hidden" id="mlg-id"><div class="fr"><label class="fl">회사 *</label><select class="fsel" id="mlg-co" onchange="filterLgCt(this.value)"><option value="">— 회사 선택 —</option></select></div><div class="fr"><label class="fl">담당자</label><select class="fsel" id="mlg-ct"><option value="">— 선택 (선택사항) —</option></select></div><div class="f2"><div class="fr" style="margin:0;"><label class="fl">채널</label><select class="fsel" id="mlg-ch"><option value="linkedin">LinkedIn</option><option value="email">Email (SES)</option><option value="website">웹사이트</option><option value="call">전화</option></select></div><div class="fr" style="margin:0;"><label class="fl">주차 번호</label><input class="fi" id="mlg-week" type="number" placeholder="1" min="1"></div></div><div class="fr" style="margin-top:14px;"><label class="fl">SES 배치</label><input class="fi" id="mlg-ses" placeholder="e.g. 2026-W13-batch1"></div><div class="fchk"><label><input type="checkbox" id="mlg-sent"> 발송</label><label><input type="checkbox" id="mlg-accepted"> 수락</label><label><input type="checkbox" id="mlg-replied"> 응답</label></div><div class="fr"><label class="fl">응답 유형</label><select class="fsel" id="mlg-rtype"><option value="no_reply">응답 없음</option><option value="positive">긍정적</option><option value="negative">부정적/거절</option><option value="neutral">중립</option></select></div><div class="fr"><label class="fl">메모</label><textarea class="fi fta" id="mlg-memo" placeholder="컨택 내용..."></textarea></div><div class="factions"><button class="btn" id="mlg-cancel">취소</button><button class="btn btn-acc" onclick="saveLg()">저장</button></div></div></div>
+<div class="mbg" id="msc"><div class="mbox"><div class="mtitle">스코어 입력<button class="mx" id="msc-x">✕</button></div><input type="hidden" id="msc-id"><div class="fr"><label class="fl">회사 *</label><select class="fsel" id="msc-co"><option value="">— 회사 선택 —</option></select></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;"><div><label class="fl">C1 산업 (×.35)</label><input class="fi" id="msc-c1" type="number" min="1" max="10" step=".5" placeholder="1–10" oninput="prevSc()"></div><div><label class="fl">C2 규모 (×.05)</label><input class="fi" id="msc-c2" type="number" min="1" max="10" step=".5" placeholder="1–10" oninput="prevSc()"></div><div><label class="fl">C3 크기 (×.10)</label><input class="fi" id="msc-c3" type="number" min="1" max="10" step=".5" placeholder="1–10" oninput="prevSc()"></div><div><label class="fl">C4 성장 (×.10)</label><input class="fi" id="msc-c4" type="number" min="1" max="10" step=".5" placeholder="1–10" oninput="prevSc()"></div><div><label class="fl">C5 기술 (×.05)</label><input class="fi" id="msc-c5" type="number" min="1" max="10" step=".5" placeholder="1–10" oninput="prevSc()"></div><div><label class="fl">C6 디지털 (×.05)</label><input class="fi" id="msc-c6" type="number" min="1" max="10" step=".5" placeholder="1–10" oninput="prevSc()"></div></div><div class="fr"><label class="fl">C7 결정권 (×.30) ★</label><input class="fi" id="msc-c7" type="number" min="1" max="10" step=".5" placeholder="1–10" oninput="prevSc()"></div><div style="background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;gap:10px;"><span style="font-size:12px;color:var(--text3);">Final Score:</span><span id="scprev" style="font-family:'DM Mono',monospace;font-size:18px;font-weight:600;">—</span><span id="scprevv"></span></div><div class="fr"><label class="fl">Disqualify 사유</label><input class="fi" id="msc-disq" placeholder="e.g. 경쟁사, Uses Cvent..."></div><div class="fr"><label class="fl">AI 요약</label><textarea class="fi fta" id="msc-sum"></textarea></div><div class="factions"><button class="btn" id="msc-cancel">취소</button><button class="btn btn-acc" onclick="saveSc()">저장</button></div></div></div>
+
+<div class="detbg" id="detbg"></div>
+<div class="detpanel" id="detpanel"><button style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;" id="detx">✕</button><div id="detbody"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SB='https://qwcddicbkhbondoihcxt.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Y2RkaWNia2hib25kb2loY3h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNTU1NzEsImV4cCI6MjA4OTgzMTU3MX0.eK2jJGFtvmsi_Gvzk8_I4FUufbJnIoFMsnO2LgHYWhQ';
+const PG=50;
+const D={cos:[],cosF:[],coPg:0,cts:[],ctsF:[],ctPg:0,lgs:[],lgsF:[],lgPg:0,scs:[],coMap:{},ctMap:{}};
+
+// ── MODAL: purely addEventListener, zero inline onclick for modal control ──
+function mOpen(id){document.getElementById(id).style.display='flex';}
+function mClose(id){document.getElementById(id).style.display='none';}
+
+// Wire close buttons
+['co','ct','lg','sc'].forEach(k=>{
+  const id='m'+k;
+  document.getElementById(id+'-x').addEventListener('click',()=>mClose(id));
+  document.getElementById(id+'-cancel').addEventListener('click',()=>mClose(id));
+  document.getElementById(id).addEventListener('click',function(e){if(e.target===this)mClose(id);});
+});
+
+// Wire new-entry buttons
+document.getElementById('btn-nco').addEventListener('click',()=>nCo());
+document.getElementById('btn-nct').addEventListener('click',()=>nCt(null));
+document.getElementById('btn-nlg').addEventListener('click',()=>nLg(null));
+document.getElementById('btn-nsc').addEventListener('click',()=>nSc());
+
+// Wire detail panel close
+document.getElementById('detx').addEventListener('click',cDet);
+document.getElementById('detbg').addEventListener('click',cDet);
+
+// ── OPEN NEW ──
+function nCo(){
+  g('mco-id').value='';g('mco-title').textContent='회사 추가';
+  ['mco-name','mco-country','mco-web','mco-notes'].forEach(i=>g(i).value='');
+  g('mco-tag').value='';mOpen('mco');
+}
+function nCt(coId){
+  g('mct-id').value='';g('mct-title').textContent='담당자 추가';
+  g('mct-co').value=coId||'';
+  ['mct-first','mct-last','mct-title-inp','mct-email','mct-li','mct-notes'].forEach(i=>g(i).value='');
+  mOpen('mct');
+}
+function nLg(coId){
+  g('mlg-id').value='';g('mlg-title').textContent='컨택 이력 추가';
+  g('mlg-co').value=coId||'';g('mlg-ct').value='';
+  g('mlg-ch').value='linkedin';g('mlg-week').value='';g('mlg-ses').value='';
+  g('mlg-sent').checked=false;g('mlg-accepted').checked=false;g('mlg-replied').checked=false;
+  g('mlg-rtype').value='no_reply';g('mlg-memo').value='';
+  filterLgCt(coId||'');
+  mOpen('mlg');
+}
+function nSc(){
+  g('msc-id').value='';g('msc-co').value='';
+  ['msc-c1','msc-c2','msc-c3','msc-c4','msc-c5','msc-c6','msc-c7','msc-disq','msc-sum'].forEach(i=>g(i).value='');
+  g('scprev').textContent='—';g('scprevv').innerHTML='';mOpen('msc');
+}
+
+// ── OPEN EDIT ──
+function eCo(id){
+  const c=D.cos.find(x=>x.company_id===id);if(!c)return;
+  g('mco-id').value=id;g('mco-title').textContent='회사 편집';
+  g('mco-name').value=c.company_name||'';g('mco-country').value=c.country||'';
+  g('mco-web').value=c.website||'';g('mco-tag').value=c.industry_tag||'';g('mco-notes').value=c.notes||'';
+  mOpen('mco');
+}
+function eCt(id){
+  const c=D.cts.find(x=>x.contact_id===id);if(!c)return;
+  g('mct-id').value=id;g('mct-title').textContent='담당자 편집';
+  g('mct-co').value=c.company_id||'';g('mct-first').value=c.first_name||'';
+  g('mct-last').value=c.last_name||'';g('mct-title-inp').value=c.title||'';
+  g('mct-email').value=c.email||'';g('mct-li').value=c.linkedin_url||'';g('mct-notes').value=c.notes||'';
+  mOpen('mct');
+}
+function eLg(id){
+  const l=D.lgs.find(x=>x.log_id===id);if(!l)return;
+  g('mlg-id').value=id;g('mlg-title').textContent='이력 편집';
+  g('mlg-co').value=l.company_id||'';g('mlg-ct').value=l.contact_id||'';
+  g('mlg-ch').value=l.channel||'linkedin';g('mlg-week').value=l.week_number||'';g('mlg-ses').value=l.ses_batch||'';
+  g('mlg-sent').checked=!!l.sent;g('mlg-accepted').checked=!!l.accepted;g('mlg-replied').checked=!!l.replied;
+  g('mlg-rtype').value=l.reply_type||'no_reply';g('mlg-memo').value=l.memo||'';
+  mOpen('mlg');
+}
+function eSc(id){
+  const s=D.scs.find(x=>x.score_id===id);if(!s)return;
+  g('msc-id').value=id;g('msc-co').value=s.company_id||'';
+  g('msc-c1').value=s.c1_industry_fit||'';g('msc-c2').value=s.c2_business_volume||'';
+  g('msc-c3').value=s.c3_company_size||'';g('msc-c4').value=s.c4_growth_signal||'';
+  g('msc-c5').value=s.c5_tech_maturity||'';g('msc-c6').value=s.c6_digital_activity||'';
+  g('msc-c7').value=s.c7_decision_power||'';g('msc-disq').value=s.disqualify_reason||'';g('msc-sum').value=s.ai_summary||'';
+  prevSc();mOpen('msc');
+}
+
+// ── SAVE ──
+async function saveCo(){
+  const id=g('mco-id').value;
+  const p={company_name:g('mco-name').value.trim(),country:g('mco-country').value.trim()||null,website:g('mco-web').value.trim()||null,industry_tag:g('mco-tag').value||null,notes:g('mco-notes').value.trim()||null,updated_at:now()};
+  console.log('[saveCo] id=', id, 'payload=', p);
+  if(!p.company_name){toast('회사명을 입력하세요');return;}
+  try{
+    let result;
+    if(id){result=await sb('company','?company_id=eq.'+id,'PATCH',p);}
+    else{result=await sb('company','','POST',{...p,created_at:now()});}
+    console.log('[saveCo] result=', result);
+    mClose('mco');toast('저장됐습니다');await loadAll();
+  }
+  catch(e){console.error('[saveCo] error=',e);toast('저장 실패: '+e.message);}
+}
+async function saveCt(){
+  const id=g('mct-id').value;
+  const p={company_id:g('mct-co').value||null,first_name:g('mct-first').value.trim()||null,last_name:g('mct-last').value.trim()||null,title:g('mct-title-inp').value.trim()||null,email:g('mct-email').value.trim()||null,linkedin_url:g('mct-li').value.trim()||null,notes:g('mct-notes').value.trim()||null};
+  try{id?await sb('contact','?contact_id=eq.'+id,'PATCH',p):await sb('contact','','POST',{...p,is_primary:true,created_at:now()});mClose('mct');toast('저장됐습니다');await loadAll();}
+  catch(e){toast('저장 실패: '+e.message);}
+}
+async function saveLg(){
+  const id=g('mlg-id').value,wk=g('mlg-week').value;
+  const p={company_id:g('mlg-co').value||null,contact_id:g('mlg-ct').value||null,channel:g('mlg-ch').value,week_number:wk?parseInt(wk):null,ses_batch:g('mlg-ses').value.trim()||null,sent:g('mlg-sent').checked,accepted:g('mlg-accepted').checked,replied:g('mlg-replied').checked,reply_type:g('mlg-rtype').value,memo:g('mlg-memo').value.trim()||null,contacted_at:now()};
+  if(!p.company_id){toast('회사를 선택하세요');return;}
+  try{id?await sb('sales_log','?log_id=eq.'+id,'PATCH',p):await sb('sales_log','','POST',p);mClose('mlg');toast('저장됐습니다');await loadAll();}
+  catch(e){toast('저장 실패: '+e.message);}
+}
+async function delLg(id){
+  if(!confirm('삭제하시겠습니까?'))return;
+  try{await sb('sales_log','?log_id=eq.'+id,'DELETE');toast('삭제됐습니다');await loadAll();}
+  catch(e){toast('삭제 실패: '+e.message);}
+}
+function prevSc(){
+  const v=['msc-c1','msc-c2','msc-c3','msc-c4','msc-c5','msc-c6','msc-c7'].map(i=>parseFloat(g(i).value)||0);
+  if(!v[0]&&!v[6]){g('scprev').textContent='—';g('scprevv').innerHTML='';return;}
+  const fs=v[0]*.35+v[1]*.05+v[2]*.1+v[3]*.1+v[4]*.05+v[5]*.05+v[6]*.3;
+  const el=g('scprev');el.textContent=fs.toFixed(2);el.style.color=fs>=6?'#2ecc71':fs>=4?'#f39c12':'#e74c3c';
+  g('scprevv').innerHTML=vbadge(fs>=6?'qualified':'not_qualified');
+}
+async function saveSc(){
+  const id=g('msc-id').value;
+  const v=['msc-c1','msc-c2','msc-c3','msc-c4','msc-c5','msc-c6','msc-c7'].map(i=>parseFloat(g(i).value)||null);
+  const fs=(v[0]&&v[6])?parseFloat(((v[0]||0)*.35+(v[1]||0)*.05+(v[2]||0)*.1+(v[3]||0)*.1+(v[4]||0)*.05+(v[5]||0)*.05+(v[6]||0)*.3).toFixed(2)):null;
+  const p={company_id:g('msc-co').value||null,c1_industry_fit:v[0],c2_business_volume:v[1],c3_company_size:v[2],c4_growth_signal:v[3],c5_tech_maturity:v[4],c6_digital_activity:v[5],c7_decision_power:v[6],final_score:fs,verdict:fs!=null?(fs>=6?'qualified':'not_qualified'):null,disqualify_reason:g('msc-disq').value.trim()||null,ai_summary:g('msc-sum').value.trim()||null,scored_at:now()};
+  if(!p.company_id){toast('회사를 선택하세요');return;}
+  try{id?await sb('sales_score','?score_id=eq.'+id,'PATCH',p):await sb('sales_score','','POST',p);mClose('msc');toast('저장됐습니다');await loadAll();}
+  catch(e){toast('저장 실패: '+e.message);}
+}
+
+// ── DETAIL PANEL ──
+function oDet(){g('detbg').style.display='block';g('detpanel').style.display='block';}
+function cDet(){g('detbg').style.display='none';g('detpanel').style.display='none';}
+function dCo(id){
+  const c=D.cos.find(x=>x.company_id===id);if(!c)return;
+  const cts=D.cts.filter(x=>x.company_id===id),lgs=D.lgs.filter(x=>x.company_id===id),sc=D.scs.find(x=>x.company_id===id);
+  g('detbody').innerHTML=`<div class="dpname">${esc(c.company_name||'—')}</div><div class="dpmeta">${esc(c.country||'')}${c.website?` · <a href="${esc(c.website)}" target="_blank" style="color:var(--accent2);">${dom(c.website)}</a>`:''}</div>${c.industry_tag?`<div style="margin-bottom:12px;"><span class="badge bli">${esc(c.industry_tag)}</span></div>`:''}<div class="dpsec"><div class="dpst">컨택 현황</div><div class="dprow"><span class="dprl">총 컨택</span><span class="dprv">${lgs.length}</span></div><div class="dprow"><span class="dprl">수락</span><span class="dprv">${lgs.filter(l=>l.accepted).length}</span></div><div class="dprow"><span class="dprl">응답</span><span class="dprv">${lgs.filter(l=>l.replied).length}</span></div></div>${sc?`<div class="dpsec"><div class="dpst">AI 스코어</div><div class="dprow"><span class="dprl">Final</span><span class="dprv">${sbar(sc.final_score)}</span></div><div class="dprow"><span class="dprl">Verdict</span><span class="dprv">${vbadge(sc.verdict)}</span></div></div>`:''}<div class="dpsec"><div class="dpst">담당자 (${cts.length}명)</div>${cts.map(ct=>`<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;"><span style="color:var(--text);font-weight:500;">${esc((ct.first_name||'')+' '+(ct.last_name||''))}</span> <span style="color:var(--text3);font-size:11px;">${esc(ct.title||'')}</span></div>`).join('')}</div><div class="dpsec"><div class="dpst">최근 이력</div>${lgs.slice(0,4).map(l=>`<div class="logitem"><div class="logdots">${bdot(l.sent)}<span style="font-size:10px;color:var(--text3);">추가</span>${bdot(l.accepted)}<span style="font-size:10px;color:var(--text3);">수락</span>${bdot(l.replied)}<span style="font-size:10px;color:var(--text3);">응답</span></div><div class="logmemo">${esc(l.memo||'메모 없음')}</div></div>`).join('')}</div><div style="display:flex;gap:8px;margin-top:4px;" id="det-btns"></div>`;
+  // Buttons via addEventListener
+  const ba=g('det-btns');
+  const b1=document.createElement('button');b1.className='btn';b1.style.flex='1';b1.textContent='회사 편집';
+  b1.addEventListener('click',()=>{cDet();eCo(id);});
+  const b2=document.createElement('button');b2.className='btn btn-acc';b2.style.flex='1';b2.textContent='이력 추가';
+  b2.addEventListener('click',()=>{cDet();nLg(id);});
+  ba.appendChild(b1);ba.appendChild(b2);oDet();
+}
+function dCt(id){
+  const c=D.cts.find(x=>x.contact_id===id);if(!c)return;
+  g('detbody').innerHTML=`<div class="dpname">${esc((c.first_name||'')+' '+(c.last_name||''))}</div><div class="dpmeta">${esc(c.title||'직함 없음')}</div><div class="dpsec"><div class="dpst">연락처</div><div class="dprow"><span class="dprl">이메일</span><span class="dprv" style="font-size:12px;">${esc(c.email||'—')}</span></div><div class="dprow"><span class="dprl">회사</span><span class="dprv">${esc(D.coMap[c.company_id]||'—')}</span></div><div class="dprow"><span class="dprl">LinkedIn</span><span class="dprv">${c.linkedin_url?`<a href="${esc(c.linkedin_url)}" target="_blank" style="color:var(--accent2);font-size:12px;">프로필</a>`:'—'}</span></div></div>${c.notes?`<div class="dpsec"><div class="dpst">메모</div><div style="font-size:13px;color:var(--text2);">${esc(c.notes)}</div></div>`:''}<div style="margin-top:4px;" id="det-btns"></div>`;
+  const b=document.createElement('button');b.className='btn';b.style.width='100%';b.textContent='담당자 편집';
+  b.addEventListener('click',()=>{cDet();eCt(id);});
+  g('det-btns').appendChild(b);oDet();
+}
+
+// ── API ──
+async function sb(path,params='',method='GET',body=null){
+  const url=`${SB}/rest/v1/${path}${params}`;
+  console.log('[sb]',method,url,body?JSON.stringify(body):'');
+  const r=await fetch(url,{method,headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=representation'},body:body?JSON.stringify(body):undefined});
+  console.log('[sb] status=',r.status);
+  if(!r.ok){const e=await r.text();console.error('[sb] error=',e);throw new Error(e);}
+  const t=await r.text();return t?JSON.parse(t):[];
+}
+
+// ── LOAD ──
+function setConn(s){g('cdot').className='conn-dot'+(s==='ok'?' ok':s==='err'?' err':'');g('clbl').textContent=s==='ok'?'connected':s==='err'?'error':'connecting';}
+async function loadAll(){
+  try{
+    setConn('connecting');
+    const [cos,cts,lgs,scs,ov]=await Promise.all([sb('company','?select=*&order=company_name.asc&limit=10000'),sb('contact','?select=*&order=created_at.desc&limit=10000'),sb('sales_log','?select=*&order=contacted_at.desc&limit=10000'),sb('sales_score','?select=*&order=final_score.desc&limit=2000'),sb('crm_overview','?select=*&limit=10000')]);
+    D.coMap={};D.ctMap={};
+    cos.forEach(c=>D.coMap[c.company_id]=c.company_name);
+    cts.forEach(c=>D.ctMap[c.contact_id]=(c.first_name||'')+' '+(c.last_name||''));
+    const om={};ov.forEach(o=>om[o.company_id]=o);
+    D.cos=cos.map(c=>({...c,...(om[c.company_id]||{})}));D.cosF=[...D.cos];
+    D.cts=cts;D.ctsF=[...cts];D.lgs=lgs;D.lgsF=[...lgs];D.scs=scs;
+    const sent=lgs.filter(l=>l.sent).length,acc=lgs.filter(l=>l.accepted).length,rep=lgs.filter(l=>l.replied).length;
+    g('s-co').textContent=cos.length.toLocaleString();g('s-ct').textContent=cts.length.toLocaleString();
+    g('s-acc').textContent=sent>0?Math.round(acc/sent*100)+'%':'0%';g('s-rep').textContent=rep.toLocaleString();
+    // populate selects
+    const sc=[...cos].sort((a,b)=>(a.company_name||'').localeCompare(b.company_name||''));
+    ['mct-co','mlg-co','msc-co','ico'].forEach(sid=>{const el=g(sid);if(!el)return;while(el.options.length>1)el.remove(1);sc.forEach(c=>{const o=document.createElement('option');o.value=c.company_id;o.textContent=c.company_name||'(없음)';el.appendChild(o);});});
+    const cs=g('mlg-ct');while(cs.options.length>1)cs.remove(1);cts.forEach(c=>{const o=document.createElement('option');o.value=c.contact_id;o.textContent=(c.first_name||'')+' '+(c.last_name||'');cs.appendChild(o);});
+    const cf=g('cofilter');while(cf.options.length>1)cf.remove(1);[...new Set(cos.map(c=>c.country).filter(Boolean))].sort().forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;cf.appendChild(o);});
+    const wf=g('lgwf');while(wf.options.length>1)wf.remove(1);[...new Set(lgs.map(l=>l.week_number).filter(Boolean))].sort((a,b)=>a-b).forEach(w=>{const o=document.createElement('option');o.value=w;o.textContent='W'+w;wf.appendChild(o);});
+    rCo();rCt();rLg();rSc();rDash(lgs,scs);setConn('ok');
+  }catch(e){setConn('err');toast('연결 오류: '+e.message);console.error(e);}
+}
+
+// ── RENDER ──
+function rCo(){const data=D.cosF,s=D.coPg*PG,pg=data.slice(s,s+PG);g('co-cnt').textContent=data.length.toLocaleString();const tb=g('cobody');if(!pg.length){tb.innerHTML='<tr><td colspan="9"><div class="empty">결과 없음</div></td></tr>';pgU('co',0);return;}tb.innerHTML=pg.map(c=>`<tr class="clk" onclick="dCo('${c.company_id}')"><td style="color:var(--text);font-weight:500;">${esc(c.company_name||'—')}</td><td>${esc(c.country||'—')}</td><td>${c.industry_tag?`<span class="badge bli">${esc(c.industry_tag)}</span>`:'—'}</td><td style="font-family:'DM Mono',monospace;">${c.total_contacts||0}</td><td style="font-family:'DM Mono',monospace;">${c.accepted_count||0}</td><td style="font-family:'DM Mono',monospace;">${c.replied_count||0}</td><td>${c.final_score!=null?sbar(c.final_score):'—'}</td><td>${vbadge(c.verdict)}</td><td><button class="btn" style="padding:3px 10px;font-size:11px;" onclick="event.stopPropagation();eCo('${c.company_id}')">편집</button></td></tr>`).join('');pgU('co',data.length);}
+function rCt(){const data=D.ctsF,s=D.ctPg*PG,pg=data.slice(s,s+PG);g('ct-cnt').textContent=data.length.toLocaleString();const tb=g('ctbody');if(!pg.length){tb.innerHTML='<tr><td colspan="6"><div class="empty">결과 없음</div></td></tr>';pgU('ct',0);return;}tb.innerHTML=pg.map(c=>`<tr class="clk" onclick="dCt('${c.contact_id}')"><td style="color:var(--text);font-weight:500;">${esc((c.first_name||'')+' '+(c.last_name||''))}</td><td>${esc(c.title||'—')}</td><td style="font-size:12px;color:var(--text3);">${esc(c.email||'—')}</td><td>${esc(D.coMap[c.company_id]||'—')}</td><td>${c.linkedin_url?`<a href="${esc(c.linkedin_url)}" target="_blank" style="color:var(--accent2);font-size:12px;" onclick="event.stopPropagation()">LinkedIn</a>`:'—'}</td><td><button class="btn" style="padding:3px 10px;font-size:11px;" onclick="event.stopPropagation();eCt('${c.contact_id}')">편집</button></td></tr>`).join('');pgU('ct',data.length);}
+function rLg(){
+  const data=D.lgsF;
+  g('lg-cnt').textContent=data.length.toLocaleString();
+  const tb=g('lgbody');
+  if(!data.length){tb.innerHTML='<div class="empty">결과 없음</div>';pgU('lg',0);return;}
+
+  // Group by company
+  const grouped={};
+  data.forEach(l=>{
+    const coId=l.company_id||'unknown';
+    if(!grouped[coId])grouped[coId]=[];
+    grouped[coId].push(l);
+  });
+
+  // Sort companies by most recent contact
+  const sortedCoIds=Object.keys(grouped).sort((a,b)=>{
+    const la=grouped[a][0].contacted_at||'';
+    const lb=grouped[b][0].contacted_at||'';
+    return lb.localeCompare(la);
+  });
+
+  // Paginate by company
+  const PG_CO=20;
+  const s=D.lgPg*PG_CO;
+  const pageCoIds=sortedCoIds.slice(s,s+PG_CO);
+
+  tb.innerHTML=pageCoIds.map(coId=>{
+    const logs=grouped[coId];
+    const coName=D.coMap[coId]||'—';
+    const sentCnt=logs.filter(l=>l.sent).length;
+    const accCnt=logs.filter(l=>l.accepted).length;
+    const repCnt=logs.filter(l=>l.replied).length;
+
+    // Group logs by contact
+    const byContact={};
+    logs.forEach(l=>{
+      const ctId=l.contact_id||'__no_contact__';
+      if(!byContact[ctId])byContact[ctId]=[];
+      byContact[ctId].push(l);
+    });
+
+    const ctRows=Object.keys(byContact).map(ctId=>{
+      const ctLogs=byContact[ctId];
+      const ct=D.cts.find(x=>x.contact_id===ctId);
+      const ctName=ct?(ct.first_name||'')+' '+(ct.last_name||''):'담당자 미지정';
+      const ctTitle=ct?ct.title||'':'';
+
+      const logItems=ctLogs.map(l=>{
+        const dt=l.contacted_at?new Date(l.contacted_at).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'}):'—';
+        const wk=l.week_number?`<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);margin-right:4px;">W${l.week_number}</span>`:'';
+        return `<div class="ct-log-item">
+          <span class="ct-log-date">${dt}</span>
+          ${wk}
+          <div class="ct-log-status">
+            ${stDot(l.sent,'추가')}
+            ${stDot(l.accepted,'수락')}
+            ${stDot(l.replied,'응답')}
+          </div>
+          <span class="ct-log-memo" title="${esc(l.memo||'')}">${esc(l.memo||'—')}</span>
+          <div class="ct-log-actions">
+            <button class="btn" style="padding:2px 7px;font-size:11px;" onclick="eLg('${l.log_id}')">편집</button>
+            <button class="btn btn-del" style="padding:2px 7px;font-size:11px;" onclick="delLg('${l.log_id}')">삭제</button>
+          </div>
+        </div>`;
+      }).join('');
+
+      return `<div class="ct-row">
+        <div class="ct-row-name">${esc(ctName)}</div>
+        <div class="ct-row-title">${esc(ctTitle)}</div>
+        <div class="ct-row-logs">${logItems}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="co-group">
+      <div class="co-group-header" onclick="toggleCoGroup('${coId}')">
+        <span class="co-group-name">${esc(coName)}</span>
+        <div class="co-group-meta">
+          ${sentCnt>0?`<span class="co-group-stat">${bdot(true)} 추가 ${sentCnt}</span>`:''}
+          ${accCnt>0?`<span class="co-group-stat">${bdot(true,'#4d94ff')} 수락 ${accCnt}</span>`:''}
+          ${repCnt>0?`<span class="co-group-stat">${bdot(true,'#2ecc71')} 응답 ${repCnt}</span>`:''}
+          <span class="co-group-stat" style="margin-left:4px;">${logs.length}건</span>
+          <button class="btn btn-acc" style="padding:2px 10px;font-size:11px;margin-left:8px;" onclick="event.stopPropagation();nLg('${coId}')">+ 추가</button>
+          <span class="co-group-arrow" id="arr-${coId}">▶</span>
+        </div>
+      </div>
+      <div class="co-group-body" id="grp-${coId}">${ctRows}</div>
+    </div>`;
+  }).join('');
+
+  pgU('lg', sortedCoIds.length, PG_CO);
+}
+
+function stDot(v, label){
+  const col=v?'var(--green)':'var(--border2)';
+  return `<span style="display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${col};"></span><span style="font-size:10px;color:${v?'var(--text2)':'var(--text3)'};">${label}</span></span>`;
+}
+
+function toggleCoGroup(coId){
+  const body=g('grp-'+coId), arr=g('arr-'+coId);
+  if(!body||!arr)return;
+  const isOpen=body.classList.contains('open');
+  body.classList.toggle('open',!isOpen);
+  arr.classList.toggle('open',!isOpen);
+}
+function rSc(){const data=D.scs;g('sc-cnt').textContent=data.length.toLocaleString();const tb=g('scbody');if(!data.length){tb.innerHTML='<tr><td colspan="8"><div class="empty">스코어 없음 — 우측 상단 버튼으로 추가</div></td></tr>';return;}tb.innerHTML=data.map(s=>`<tr><td style="color:var(--text);font-weight:500;">${esc(D.coMap[s.company_id]||'—')}</td><td style="font-family:'DM Mono',monospace;">${s.c1_industry_fit!=null?Number(s.c1_industry_fit).toFixed(1):'—'}</td><td style="font-family:'DM Mono',monospace;">${s.c3_company_size!=null?Number(s.c3_company_size).toFixed(1):'—'}</td><td style="font-family:'DM Mono',monospace;">${s.c7_decision_power!=null?Number(s.c7_decision_power).toFixed(1):'—'}</td><td>${s.final_score!=null?sbar(s.final_score):'—'}</td><td>${vbadge(s.verdict)}</td><td style="font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(s.disqualify_reason||s.ai_summary||'—')}</td><td><button class="btn" style="padding:3px 10px;font-size:11px;" onclick="eSc('${s.score_id}')">편집</button></td></tr>`).join('');}
+
+// ── DASHBOARD ──
+function rDash(lgs,scs){
+  const wd={};lgs.forEach(l=>{let w=l.week_number;if(!w&&l.contacted_at){const d=new Date(l.contacted_at),st=new Date('2026-01-05');w=Math.max(1,Math.ceil((d-st)/(7*24*3600*1000)));}if(!w)w=1;if(!wd[w])wd[w]={sent:0,acc:0,rep:0};if(l.sent)wd[w].sent++;if(l.accepted)wd[w].acc++;if(l.replied)wd[w].rep++;});
+  const weeks=Object.keys(wd).map(Number).sort((a,b)=>a-b).slice(0,10);let cum=0;
+  const tb=g('wtbody');
+  if(!weeks.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3);">이력 추가 시 주차번호를 입력하면 표시됩니다</td></tr>';}
+  else{tb.innerHTML=weeks.map(w=>{const d=wd[w];cum+=d.sent;const ar=d.sent>0?Math.round(d.acc/d.sent*100):0,rr=d.sent>0?Math.round(d.rep/d.sent*100):0;return`<tr><td style="font-family:'DM Mono',monospace;color:var(--text);">W${w}</td><td>${d.sent.toLocaleString()}</td><td>${d.acc.toLocaleString()}</td><td>${ar}%</td><td>${d.rep.toLocaleString()}</td><td>${rr}%</td><td style="font-family:'DM Mono',monospace;">${cum.toLocaleString()}</td></tr>`;}).join('');}
+  const cw=weeks.length>0?wd[weeks[weeks.length-1]]:{sent:0,acc:0,rep:0},cwN=weeks.length>0?weeks[weeks.length-1]:'—';
+  g('twlbl').textContent='W'+cwN;const rem=Math.max(0,1000-(cw.sent||0));
+  g('twbody').innerHTML=[['이번 주 SES 목표','1,000',true],['발송 완료',(cw.sent||0).toLocaleString(),cw.sent>0],['잔여',rem.toLocaleString(),rem===0],['LinkedIn 수락',(cw.acc||0).toLocaleString(),cw.acc>0],['응답',(cw.rep||0).toLocaleString(),cw.rep>0]].map(([l,v,on])=>`<div class="twitem"><div class="twdot ${on?'on':''}"></div>${l}<div class="twval">${v}</div></div>`).join('');
+  const ctx=g('fchart').getContext('2d');if(window._fc)window._fc.destroy();
+  window._fc=new Chart(ctx,{type:'line',data:{labels:weeks.map(w=>'W'+w),datasets:[{label:'수락률 %',data:weeks.map(w=>{const d=wd[w];return d.sent>0?Math.round(d.acc/d.sent*100):0;}),borderColor:'#4d94ff',backgroundColor:'rgba(77,148,255,.08)',tension:.3,pointRadius:4,pointBackgroundColor:'#4d94ff'},{label:'응답률 %',data:weeks.map(w=>{const d=wd[w];return d.sent>0?Math.round(d.rep/d.sent*100):0;}),borderColor:'#2ecc71',backgroundColor:'rgba(46,204,113,.08)',tension:.3,pointRadius:4,pointBackgroundColor:'#2ecc71'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#9b9890',font:{size:11}}}},scales:{x:{grid:{color:'rgba(46,46,42,.6)'},ticks:{color:'#5c5a54',font:{size:11}}},y:{grid:{color:'rgba(46,46,42,.6)'},ticks:{color:'#5c5a54',font:{size:11}},min:0,max:100}}}});
+  const qual=scs.filter(s=>s.verdict==='qualified');
+  if(!qual.length){g('implbody').innerHTML='<div style="font-size:12px;color:var(--text3);">스코어 데이터 없음</div>';return;}
+  const qi=new Set(qual.map(s=>s.company_id));const ql=lgs.filter(l=>qi.has(l.company_id));
+  const qS=ql.filter(l=>l.sent).length,qA=ql.filter(l=>l.accepted).length,qR=ql.filter(l=>l.replied).length;
+  const aS=lgs.filter(l=>l.sent).length,aA=lgs.filter(l=>l.accepted).length,aR=lgs.filter(l=>l.replied).length;
+  const qAR=qS>0?qA/qS*100:0,qRR=qS>0?qR/qS*100:0,aAR=aS>0?aA/aS*100:0,aRR=aS>0?aR/aS*100:0;
+  const ir=(lbl,qr,ar)=>{const d=qr-ar,col=d>=0?'#2ecc71':'#e74c3c';return`<div class="irow"><span class="ilbl">${lbl}</span><div class="ibarbg"><div class="ibarfill" style="width:${Math.min(100,qr)}%;background:${col};"></div></div><span class="ival" style="color:${col};">${Math.round(qr)}%${d>=0?' ↑':' ↓'}</span></div>`;};
+  g('implbody').innerHTML=ir('수락률 (qualified)',qAR,aAR)+ir('응답률 (qualified)',qRR,aRR)+`<div style="font-size:11px;color:var(--text3);margin-top:7px;">전체 수락 ${Math.round(aAR)}% / 응답 ${Math.round(aRR)}%</div>`;
+}
+
+// ── FILTERS ──
+function filterCo(){const q=g('cosearch').value.toLowerCase(),co=g('cofilter').value;D.cosF=D.cos.filter(c=>(!q||(c.company_name||'').toLowerCase().includes(q))&&(!co||c.country===co));D.coPg=0;rCo();}
+function filterCt(){const q=g('ctsearch').value.toLowerCase(),t=g('ctfilter').value.toLowerCase();D.ctsF=D.cts.filter(c=>{const n=((c.first_name||'')+' '+(c.last_name||'')+(c.email||'')).toLowerCase();return(!q||n.includes(q))&&(!t||(c.title||'').toLowerCase().includes(t));});D.ctPg=0;rCt();}
+function filterLg(){const q=g('lgsearch').value.toLowerCase(),af=g('lgaf').value,wf=g('lgwf').value;D.lgsF=D.lgs.filter(l=>{const cn=(D.coMap[l.company_id]||'').toLowerCase();return(!q||cn.includes(q)||(l.memo||'').toLowerCase().includes(q))&&(af===''||String(l.accepted)===af)&&(!wf||String(l.week_number)===wf);});D.lgPg=0;rLg();}
+
+// ── SEARCH ──
+function onGS(q){if(q.length>1){showView('search');g('sinput').value=q;runSearch(q);}}
+function runSearch(q){q=q.trim().toLowerCase();const el=g('sresults');if(!q||q.length<2){el.innerHTML='<div class="empty">2자 이상 입력하세요</div>';return;}const cos=D.cos.filter(c=>(c.company_name||'').toLowerCase().includes(q)||(c.notes||'').toLowerCase().includes(q)).slice(0,10);const cts=D.cts.filter(c=>((c.first_name||'')+' '+(c.last_name||'')+(c.email||'')).toLowerCase().includes(q)).slice(0,10);const lgs=D.lgs.filter(l=>((D.coMap[l.company_id]||'')+(l.memo||'')).toLowerCase().includes(q)).slice(0,8);if(!cos.length&&!cts.length&&!lgs.length){el.innerHTML='<div class="empty">결과 없음</div>';return;}let h='';if(cos.length){h+=`<div class="ssec"><div class="sslbl">회사 (${cos.length})</div>`;h+=cos.map(c=>`<div class="sitem" onclick="dCo('${c.company_id}')"><div class="sitem-t">${esc(c.company_name)}</div><div class="sitem-s">${esc(c.country||'')}${c.industry_tag?' · '+c.industry_tag:''}</div></div>`).join('');h+='</div>';}if(cts.length){h+=`<div class="ssec"><div class="sslbl">담당자 (${cts.length})</div>`;h+=cts.map(c=>`<div class="sitem" onclick="dCt('${c.contact_id}')"><div class="sitem-t">${esc((c.first_name||'')+' '+(c.last_name||''))}</div><div class="sitem-s">${esc(c.title||'')} · ${esc(D.coMap[c.company_id]||'')}</div></div>`).join('');h+='</div>';}if(lgs.length){h+=`<div class="ssec"><div class="sslbl">이력 (${lgs.length})</div>`;h+=lgs.map(l=>`<div class="sitem"><div class="sitem-t">${esc(D.coMap[l.company_id]||'—')}</div><div class="sitem-s">${esc(l.memo||'메모 없음')}</div></div>`).join('');h+='</div>';}el.innerHTML=h;}
+
+// ── INTAKE ──
+function onICo(coId){const c=D.cos.find(x=>x.company_id===coId);if(!c)return;g('icoc').value=c.country||'';g('icow').value=c.website||'';g('icot').value=c.industry_tag||'';g('icon').value=c.notes||'';const sel=g('ict');while(sel.options.length>1)sel.remove(1);D.cts.filter(ct=>ct.company_id===coId).forEach(ct=>{const o=document.createElement('option');o.value=ct.contact_id;o.textContent=(ct.first_name||'')+' '+(ct.last_name||'');sel.appendChild(o);});}
+function onICt(id){const c=D.cts.find(x=>x.contact_id===id);if(!c)return;g('ictf').value=c.first_name||'';g('ictl').value=c.last_name||'';g('ictti').value=c.title||'';g('icte').value=c.email||'';g('ictli').value=c.linkedin_url||'';g('ictn').value=c.notes||'';}
+async function saveICo(){const id=g('ico').value;if(!id){toast('회사를 선택하세요');return;}const p={country:g('icoc').value.trim()||null,website:g('icow').value.trim()||null,industry_tag:g('icot').value||null,notes:g('icon').value.trim()||null,updated_at:now()};try{await sb('company','?company_id=eq.'+id,'PATCH',p);toast('저장됐습니다');await loadAll();}catch(e){toast('저장 실패: '+e.message);}}
+async function saveICt(){const id=g('ict').value;const p={first_name:g('ictf').value.trim()||null,last_name:g('ictl').value.trim()||null,title:g('ictti').value.trim()||null,email:g('icte').value.trim()||null,linkedin_url:g('ictli').value.trim()||null,notes:g('ictn').value.trim()||null};try{if(id){await sb('contact','?contact_id=eq.'+id,'PATCH',p);toast('저장됐습니다');}else{const ci=g('ico').value;if(!ci){toast('회사를 먼저 선택하세요');return;}await sb('contact','','POST',{...p,company_id:ci,is_primary:false,created_at:now()});toast('추가됐습니다');}await loadAll();}catch(e){toast('저장 실패: '+e.message);}}
+
+// ── NAV / PAGINATION / HELPERS ──
+function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));g('view-'+name).classList.add('active');g('nav-'+name).classList.add('active');if(name==='search')g('sinput').focus();}
+function pgCh(t,d){if(t==='co'){D.coPg=Math.max(0,D.coPg+d);rCo();}if(t==='ct'){D.ctPg=Math.max(0,D.ctPg+d);rCt();}if(t==='lg'){D.lgPg=Math.max(0,D.lgPg+d);rLg();}}
+function pgU(t,total,pgSize){const pg=D[t+'Pg']||0,ps=pgSize||PG,tp=Math.max(1,Math.ceil(total/ps));g(t+'pinfo').textContent=`${pg+1} / ${tp} (${total.toLocaleString()}개 회사)`;g(t+'prev').disabled=pg===0;g(t+'next').disabled=pg>=tp-1;}
+function g(id){return document.getElementById(id);}
+function now(){return new Date().toISOString();}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function dom(url){try{return new URL(url).hostname.replace('www.','')}catch(e){return url;}}
+function bdot(v){return`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${v?'var(--green)':'var(--border2)'};"></span>`;}
+function sbar(v){const p=Math.min(100,(v/10)*100),col=v>=6?'var(--green)':v>=4?'var(--yellow)':'var(--red)';return`<div class="sbar"><div class="sbar-bg"><div class="sbar-fill" style="width:${p}%;background:${col};"></div></div><span class="sbar-num" style="color:${col};">${Number(v).toFixed(1)}</span></div>`;}
+function vbadge(v){if(!v)return'—';if(v==='qualified')return'<span class="badge bq">qualified</span>';if(v==='not_qualified')return'<span class="badge bnq">not qualified</span>';return'<span class="badge bp">pending</span>';}
+function rbc(t){if(t==='positive')return'bq';if(t==='negative')return'bnq';if(t==='no_reply')return'bp';return'bli';}
+function toast(msg){const el=g('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);}
+
+function filterLgCt(coId){
+  const sel=g('mlg-ct');
+  while(sel.options.length>1)sel.remove(1);
+  if(!coId)return;
+  // coId가 company_name일 수도 있으므로 양쪽 다 체크
+  const matched = D.cts.filter(ct=>ct.company_id===coId);
+  console.log('[filterLgCt] coId=',coId,'matched=',matched.length,'total cts=',D.cts.length);
+  // coId가 UUID가 아닌 경우 coMap에서 역방향으로 찾기
+  if(matched.length===0){
+    const coIdByName = Object.keys(D.coMap).find(k=>D.coMap[k]===coId);
+    console.log('[filterLgCt] coIdByName=',coIdByName);
+  }
+  matched.forEach(ct=>{
+    const o=document.createElement('option');
+    o.value=ct.contact_id;
+    o.textContent=(ct.first_name||'')+' '+(ct.last_name||'');
+    sel.appendChild(o);
+  });
+}
+
+loadAll();
+</script>
+</body>
+</html>
